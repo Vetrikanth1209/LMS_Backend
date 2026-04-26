@@ -35,27 +35,39 @@ router.get("/get-result-by-result-id/:result_test_id", async (req, res) => {
 
 router.post("/post-result", async (req, res) => {
   try {
-    const { result_user_id, result_test_id, result_score, result_total_score, result_poc_id } = req.body;
+    const {
+      result_user_id,
+      result_test_id,
+      result_score,
+      result_total_score,
+      result_poc_id,
+      result_mcq_score,
+      result_coding_score,
+    } = req.body;
 
     // Validate required fields
-    if (!result_user_id || !result_test_id || result_score == null || result_total_score == null || !result_poc_id) {
+    if (
+      !result_user_id ||
+      !result_test_id ||
+      result_score == null ||
+      result_total_score == null ||
+      !result_poc_id ||
+      result_mcq_score == null ||
+      !result_coding_score ||
+      result_coding_score.score == null ||
+      result_coding_score.testcases_passed == null
+    ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     // Check for duplicate entry
-    const existingResult = await Result.findOne({
-      result_user_id,
-      result_test_id
-    });
-
+    const existingResult = await Result.findOne({ result_user_id, result_test_id });
     if (existingResult) {
       return res.status(409).json({ message: "Result already exists for this user and test" });
     }
 
-    // Generate UUID for result_id
     const result_id = uuidv4();
 
-    // Store in database
     const newResult = new Result({
       result_id,
       result_user_id,
@@ -63,6 +75,11 @@ router.post("/post-result", async (req, res) => {
       result_score,
       result_total_score,
       result_poc_id,
+      result_mcq_score,
+      result_coding_score: {
+        score: result_coding_score.score,
+        testcases_passed: result_coding_score.testcases_passed,
+      },
     });
 
     await newResult.save();
@@ -73,7 +90,6 @@ router.post("/post-result", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 });
-
 // BULK RESULT POST
 
 router.post("/post-bulk-results", async (req, res) => {

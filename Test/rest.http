@@ -65,6 +65,18 @@ Content-Type: application/json
     }
   ]
 
+### Create MCQ
+POST http://localhost:5000/api/add_mcq
+Content-Type: application/json
+
+{
+  "mcq_question": "Which are programming languages?",
+  "mcq_options": ["Python", "HTML", "Java", "CSS"],
+  "mcq_answer": ["Python", "Java"],
+  "mcq_type": "multi",
+  "mcq_tag": ["programming"]
+}
+
 
 ### Create a Test Id and Post the testCase
 POST http://localhost:5000/api/create_testCase

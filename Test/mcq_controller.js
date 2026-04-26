@@ -8,17 +8,47 @@ const router = express.Router();
 // Add multiple MCQs
 router.post('/add_mcq', async (req, res) => {
     try {
-        let mcqs = req.body; // Expecting an array of MCQs or a single object
+        let mcqs = req.body;
 
-        // Convert to an array if a single object is received
+        // Convert to array if single object received
         if (!Array.isArray(mcqs)) {
             mcqs = [mcqs];
         }
 
-        // Extract all questions to check for duplicates
-        const mcqQuestions = mcqs.map(mcq => mcq.mcq_question);
+        // Validate and normalize each MCQ
+        for (const mcq of mcqs) {
+            if (!mcq.mcq_question || !mcq.mcq_options || !mcq.mcq_answer) {
+                return res.status(400).json({ error: "mcq_question, mcq_options, and mcq_answer are required." });
+            }
 
-        // Check if any of the questions already exist
+            // Normalize mcq_answer to always be an array
+            if (!Array.isArray(mcq.mcq_answer)) {
+                mcq.mcq_answer = [mcq.mcq_answer];
+            }
+
+            // Auto-detect mcq_type if not provided
+            if (!mcq.mcq_type) {
+                mcq.mcq_type = mcq.mcq_answer.length > 1 ? 'multi' : 'single';
+            }
+
+            // Validate: all answers must exist in options
+            const invalidAnswers = mcq.mcq_answer.filter(ans => !mcq.mcq_options.includes(ans));
+            if (invalidAnswers.length > 0) {
+                return res.status(400).json({
+                    error: `Invalid answer(s) for question "${mcq.mcq_question}": [${invalidAnswers.join(', ')}] not found in options.`
+                });
+            }
+
+            // Validate: multi-type must have more than 1 answer
+            if (mcq.mcq_type === 'multi' && mcq.mcq_answer.length < 2) {
+                return res.status(400).json({
+                    error: `Question "${mcq.mcq_question}" is marked as multi but has only one answer.`
+                });
+            }
+        }
+
+        // Check for duplicate questions
+        const mcqQuestions = mcqs.map(mcq => mcq.mcq_question);
         const existingMcqs = await MCQ.find({ mcq_question: { $in: mcqQuestions } });
         const existingQuestions = existingMcqs.map(mcq => mcq.mcq_question);
 
@@ -29,7 +59,6 @@ router.post('/add_mcq', async (req, res) => {
             return res.status(400).json({ error: "All questions already exist. No new MCQs added." });
         }
 
-        // Insert non-duplicate MCQs
         const savedMcqs = await MCQ.insertMany(newMcqs);
 
         res.status(201).json({
