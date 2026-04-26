@@ -1,0 +1,9 @@
+    POST http://localhost:3000/api/add_module 
+    Content-Type: application/json
+
+    { "mod_name": "Introduction to Node.js", "mod_tech": "Node.js", "mod_duration": "4 weeks" }
+################
+GET http://localhost:5000/api/get_all_module
+
+########################
+GET http://localhost:5000/api/get_module_by_id/8e42022a-9509-496a-874e-f104896ad4ca

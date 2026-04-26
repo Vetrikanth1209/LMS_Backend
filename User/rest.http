@@ -1,0 +1,31 @@
+#######################
+POST http://localhost:5000/api/add_user
+Content-Type: application/json
+
+{
+  "full_name": "admin",
+  "department": "INFORMATION TECHNOLOGY ",
+  "college": "MUTHAYAMMAL ENGINEERING COLLEGE",
+  "email": "admin@gmail.com",
+  "password": "1234",
+  "rollno" : "4321"
+}
+
+########################
+POST http://localhost:5000/api/login
+Content-Type: application/json
+
+{
+  "email": "test@gmail.com",
+  "password": "1234"
+}
+
+
+##################
+
+GET http://localhost:5000/api/get_user_by_id/570486db-1933-4160-a0fd-6c895cfc83d2
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjhiODg0Ni05OGVlLTRkYTItYTM0NC01NzhmNjYzZTE3N2YiLCJmdWxsX25hbWUiOiJhZG1pbiIsImlhdCI6MTc3NTQ1NzM5NSwiZXhwIjoxNzc1NDkzMzk1fQ.RLGfyvAmikOQ4APnHKujXDWVKecsZ5ubosT4j0dhFu8
+
+##################
+
+GET http://localhost:5000/api/read_all_users

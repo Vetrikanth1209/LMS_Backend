@@ -1,0 +1,66 @@
+### Create a new POC
+POST http://localhost:3000/api/add_poc
+Content-Type: application/json
+
+{
+    "mod_poc_name": "test",
+    "mod_poc_role": "AP",
+    "mod_poc_email": "test@gmail.com",
+    "mod_poc_mobile": "26213283847784"
+}
+
+### Update only mod_tests and mod_users
+PUT http://localhost:3000/api/update_mod_field 
+Content-Type: application/json
+
+{
+    "mod_poc_id": "9ee7f666-59d8-487f-a480-55a72aba348b",
+    "mod_users": ["ea8ffe88-2e17-47a7-a209-8f27759ffa6b"]
+}
+
+
+### 
+GET http://localhost:3000/api/get-by-mod-id/8e42022a-9509-496a-874e-f104896ad4ca
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlYThmZmU4OC0yZTE3LTQ3YTctYTIwOS04ZjI3NzU5ZmZhNmIiLCJmdWxsX25hbWUiOiJ0ZXN0IiwiaWF0IjoxNzU3MDU2OTc5LCJleHAiOjE3NTcwOTI5Nzl9.6F7t4aCBkGaafv0-5rabR3eHVSV0Qhz9NuQIx4zPG04
+
+
+
+###############
+GET http://localhost:5000/api/mod_and_poc/ea8ffe88-2e17-47a7-a209-8f27759ffa6b
+
+
+
+
+
+###################
+POST http://localhost:5000/api/add_expert
+Content-Type: application/json
+
+{
+    "mod_expert_name": "John Doe",
+    "mod_expert_mobile": "9876543210",
+    "mod_expert_role": "Senior Developer",
+    "mod_expert_profile": "https://example.com/profile.jpg"
+}
+
+
+########################
+POST http://localhost:5000/api/generate-certificates
+Content-Type: application/json
+
+{
+    "mod_poc_id":"6e1f1861-f2b4-43f8-9d59-db1956f32db5",
+    "userIds" : ["ea8ffe88-2e17-47a7-a209-8f27759ffa6b"]
+}
+
+###############
+GET http://localhost:5000/api/read_all_poc
+
+###############
+GET http://localhost:5000/api/read_all_experts
+
+###############
+GET http://localhost:5000/api/get_poc_report_by_poc_id/6e1f1861-f2b4-43f8-9d59-db1956f32db5
+
+################
+GET http://localhost:5000/api/read_all_poc_name

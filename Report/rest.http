@@ -1,0 +1,27 @@
+#############
+POST http://localhost:5000/api/post-result
+Content-Type: application/json
+
+{
+
+  "result_user_id": "ea8ffe88-2e17-47a7-a209-8f27759ffa6b",
+  "result_test_id": "9b31e4f7-9848-4ccf-8ab4-bed0d8dd493e",
+  "result_score": 25,
+  "result_total_score": 30,
+  "result_poc_id": "6e1f1861-f2b4-43f8-9d59-db1956f32db5"
+}
+
+################
+GET http://localhost:5000/api/get-all-individual
+
+
+
+################
+GET http://localhost:5000/api/get-user-details-by-user-id/ea8ffe88-2e17-47a7-a209-8f27759ffa6b
+################
+GET http://localhost:5000/api/fetch_details/5bced04e-f3db-472c-868e-2d97f8c0b611/863662d6-7565-4ba7-aaa5-5ecc9d6cae9e/9ccefe74-f80c-4427-804e-827a61d7619a
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlYThmZmU4OC0yZTE3LTQ3YTctYTIwOS04ZjI3NzU5ZmZhNmIiLCJmdWxsX25hbWUiOiJ0ZXN0IiwiaWF0IjoxNzU3MzIwNjMxLCJleHAiOjE3NTczNTY2MzF9.jgAf-eOV8-UGXw09f9kaNiNLGfHp3_QFACGZgkA-zxc
+
+######################
+  GET http://localhost:5000/api/aggregate_scores/9ccefe74-f80c-4427-804e-827a61d7619a/570486db-1933-4160-a0fd-6c895cfc83d2
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjhiODg0Ni05OGVlLTRkYTItYTM0NC01NzhmNjYzZTE3N2YiLCJmdWxsX25hbWUiOiJhZG1pbiIsImlhdCI6MTc3NTQ1NzM5NSwiZXhwIjoxNzc1NDkzMzk1fQ.RLGfyvAmikOQ4APnHKujXDWVKecsZ5ubosT4j0dhFu8

@@ -1,0 +1,21 @@
+############
+POST http://localhost:5000/api/create_org
+Content-Type: application/json
+
+{
+  "org_name": "selva engineering college",
+  "org_address": "chennai",
+  "org_email": "selvaec@gmail.com",
+  "org_contact": "1234567809",
+  "org_associated_date": "2025-11-19"
+
+}
+
+##################
+GET http://localhost:5000/api/get_all_org_name
+
+################
+GET http://localhost:5000/api/get_org_name_by_id/8e42022a-9509-496a-874e-f104896ad4ca
+
+###############
+DELETE http://localhost:5000/api/delete_org_by_id/27b7f929-1ff3-45fe-828d-c1e8e330bcee

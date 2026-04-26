@@ -1,0 +1,152 @@
+### Create MCQ
+POST http://localhost:5000/api/add_mcq
+Content-Type: application/json
+
+[
+    {
+      "mcq_question": "What is the output of print(2 ** 3)?",
+      "mcq_options": ["6", "8", "9", "12"],
+      "mcq_answer": "8",
+      "mcq_tag": ["Python", "Basics", "Operators"]
+    },
+    {
+      "mcq_question": "Which of the following is a correct way to create a list in Python?",
+      "mcq_options": ["list = {1, 2, 3}", "list = [1, 2, 3]", "list = (1, 2, 3)", "list = <1, 2, 3>"],
+      "mcq_answer": "list = [1, 2, 3]",
+      "mcq_tag": ["Python", "Data Structures", "Lists"]
+    },
+    {
+      "mcq_question": "What does the len() function do?",
+      "mcq_options": ["Returns the length of an object", "Converts a string to lowercase", "Appends an element to a list", "Removes an element from a list"],
+      "mcq_answer": "Returns the length of an object",
+      "mcq_tag": ["Python", "Functions", "Basics"]
+    },
+    {
+      "mcq_question": "What is the correct syntax for a Python dictionary?",
+      "mcq_options": ["{1, 2, 3}", "[1, 2, 3]", "{'key': 'value'}", "(1, 2, 3)"],
+      "mcq_answer": "{'key': 'value'}",
+      "mcq_tag": ["Python", "Data Structures", "Dictionaries"]
+    },
+    {
+      "mcq_question": "Which keyword is used to define a function in Python?",
+      "mcq_options": ["func", "define", "def", "function"],
+      "mcq_answer": "def",
+      "mcq_tag": ["Python", "Functions", "Basics"]
+    },
+    {
+      "mcq_question": "What is the output of print('Hello'[1])?",
+      "mcq_options": ["H", "e", "l", "o"],
+      "mcq_answer": "e",
+      "mcq_tag": ["Python", "Strings", "Indexing"]
+    },
+    {
+      "mcq_question": "Which of these is NOT a Python data type?",
+      "mcq_options": ["int", "float", "string", "array"],
+      "mcq_answer": "array",
+      "mcq_tag": ["Python", "Data Types", "Basics"]
+    },
+    {
+      "mcq_question": "What does the 'in' operator do?",
+      "mcq_options": ["Checks if a value is in a sequence", "Performs division", "Adds two values", "Compares two variables"],
+      "mcq_answer": "Checks if a value is in a sequence",
+      "mcCapitallq_tag": ["Python", "Operators", "Logic"]
+    },
+    {
+      "mcq_question": "How do you start a comment in Python?",
+      "mcq_options": ["//", "/*", "#", "--"],
+      "mcq_answer": "#",
+      "mcq_tag": ["Python", "Syntax", "Basics"]
+    },
+    {
+      "mcq_question": "What is the output of print(type(42))?",
+      "mcq_options": ["<class 'int'>", "<class 'float'>", "<class 'str'>", "<class 'bool'>"],
+      "mcq_answer": "<class 'int'>",
+      "mcq_tag": ["Python", "Data Types", "Functions"]
+    }
+  ]
+
+
+### Create a Test Id and Post the testCase
+POST http://localhost:5000/api/create_testCase
+Content-Type: application/json
+
+[
+  {
+    "testcase_input": ["radar"],
+    "testcase_output": ["1"],
+    "testcase_tags": ["C", "palindrome", "string", "Ccoding2"]
+  },
+  {
+    "testcase_input": ["Radar"],
+    "testcase_output": ["0"],
+    "testcase_tags": ["C", "palindrome", "string", "case_sensitive", "Ccoding2"]
+  }
+]
+
+### Create a Coding data
+POST http://localhost:5000/api/add_code
+Content-Type: application/json
+
+{
+"code_problem_statement": "Write a C function to check if a given string is a palindrome (case-sensitive).",
+      "code_test_cases_id":  [
+    "8cf09f1e-9ce9-4c79-ba10-6d5273d4f0fe",
+    "7094da57-1694-4407-a3df-b3fc93b361f4"
+  ],
+"code_tags": ["C", "palindrome", "string", "logic"]
+}
+
+##################
+POST http://localhost:5000/api/create
+Content-Type: application/json
+
+{
+  "test_name": "C Programming Test",
+  "test_language": "C",
+  "test_mcq_id": [
+    "88bdb1eb-bb11-4314-bd74-8778c32fb0d8",
+    "1be5e89b-a45d-433f-886b-aa58bcdfb0d0"
+  ],
+  "test_coding_id": ["6381bcd1-a791-4a1c-b98b-afec876e0ccb"],
+  "test_total_score": 30,
+  "status": "active"
+}
+
+################
+GET http://localhost:5000/api/get_all_testCases
+
+################
+GET http://localhost:5000/api/all_test
+
+########################
+DELETE http://localhost:5000/api/delete_test/d8f2197b-9fbc-4786-8019-8b9a4005b5ca
+
+################
+GET http://localhost:5000/api/test_details/9b31e4f7-9848-4ccf-8ab4-bed0d8dd493e
+
+##################
+POST http://localhost:5000/api/compiler
+Content-Type: application/json
+
+{
+  "language": "python",
+  "code": "a,b=map(int,input().split())\nprint(a+b)",
+  "testCases": [
+    {
+      "input": "2 3",
+      "expectedOutput": "5"
+    }
+  ]
+}
+#############
+GET http://localhost:2000/api/v2/runtimes
+
+###########
+GET http://localhost:2358/languages
+
+###################
+curl http://localhost:2000/api/v2/runtimes
+##############
+curl -X POST http://localhost:5000/api/compiler \
+  -H "Content-Type: application/json" \
+  -d '{"language":"python","code":"a,b=map(int,input().split())\nprint(a+b)","testCases":[{"input":"2 3","expectedOutput":"5"}]}'
