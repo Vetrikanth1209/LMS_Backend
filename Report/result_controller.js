@@ -441,206 +441,276 @@ if (!ServiceAddress) {
   process.exit(1);
 }
 
-router.get('/fetch_details/:org_id/:mod_id/:mod_poc_id', async (req, res) => {
+router.get("/fetch_details/:org_id/:mod_id/:mod_poc_id", async (req, res) => {
   try {
     const { org_id, mod_id, mod_poc_id } = req.params;
     const token = req.headers.authorization;
 
-    // Construct target URLs (NO ServicePort here, because it's already in .env)
+    if (!token) {
+      return res.status(401).json({
+        message: "Authorization token missing",
+      });
+    }
+
+    // ================= URLS =================
     const orgUrl = `${ServiceAddress}/api/get_org_by_id/${org_id}`;
     const modUrl = `${ServiceAddress}/api/get_module_by_id/${mod_id}`;
     const pocUrl = `${ServiceAddress}/api/get_poc_by_poc_id/${mod_poc_id}`;
 
-    // Fetch details from each service concurrently
+    // ================= COMMON HEADERS =================
+    const config = {
+      headers: {
+        Authorization: token,
+      },
+    };
+
+    // ================= FETCH BASE DETAILS =================
     const [orgResponse, modResponse, pocResponse] = await Promise.all([
-      axios.get(orgUrl).catch(err => ({ error: err.message })),
-      axios.get(modUrl).catch(err => ({ error: err.message })),
-      axios.get(pocUrl).catch(err => ({ error: err.message })),
+      axios
+        .get(orgUrl, config)
+        .catch((err) => ({
+          error:
+            err.response?.data?.message ||
+            err.response?.data ||
+            err.message,
+        })),
+
+      axios
+        .get(modUrl, config)
+        .catch((err) => ({
+          error:
+            err.response?.data?.message ||
+            err.response?.data ||
+            err.message,
+        })),
+
+      axios
+        .get(pocUrl, config)
+        .catch((err) => ({
+          error:
+            err.response?.data?.message ||
+            err.response?.data ||
+            err.message,
+        })),
     ]);
 
-    // Check for errors in responses
+    // ================= HANDLE ERRORS =================
     if (orgResponse.error || modResponse.error || pocResponse.error) {
-      const errors = [];
-      if (orgResponse.error) errors.push(`Organization: ${orgResponse.error}`);
-      if (modResponse.error) errors.push(`Module: ${modResponse.error}`);
-      if (pocResponse.error) errors.push(`POC: ${pocResponse.error}`);
-      if (errors.every(err => err.includes('status code 404'))) {
-        return res.status(404).json({ message: 'One or more resources not found', errors });
-      }
-      return res.status(500).json({ message: 'Error fetching details', errors });
+      return res.status(500).json({
+        success: false,
+        message: "Error fetching base details",
+        errors: {
+          organization: orgResponse.error || null,
+          module: modResponse.error || null,
+          poc: pocResponse.error || null,
+        },
+      });
     }
 
-    // Parse mod_tests from pocResponse
-    const modTests = pocResponse.data.mod_tests
-      ? pocResponse.data.mod_tests.map((test, index) => ({
-          test_id: test.test_id,
-          assigned_date: test.assigned_date,
-          name: `Test ${index + 1}`, // Default name, to be updated
-          test_language: null,
-          test_total_score: null,
-          activeAt: test.assigned_date,
-        }))
+    // ================= MOD TESTS =================
+    const modTests = Array.isArray(pocResponse.data.mod_tests)
+      ? pocResponse.data.mod_tests
       : [];
 
-    // Fetch test details for each test_id
-    const testDetailsPromises = modTests.map((test) =>
-      axios
-        .get(`${ServiceAddress}/api/test_details/${test.test_id}`, {
-          headers: { Authorization: token },
-        })
-        .then((res) => ({
+    // ================= FETCH TEST DETAILS =================
+    const testDetailsPromises = modTests.map(async (test, index) => {
+      try {
+        const response = await axios.get(
+          `${ServiceAddress}/api/test_details/${test.test_id}`,
+          config
+        );
+
+        return {
           test_id: test.test_id,
-          name: res.data.test_name || `Test ${modTests.indexOf(test) + 1}`,
-          test_language: res.data.test_language || null,
-          test_total_score: res.data.test_total_score || null,
-          activeAt: res.data.activeAt || test.assigned_date,
-        }))
-        .catch((err) => ({
+          assigned_date: test.assigned_date || "",
+          name: response.data.test_name || `Test ${index + 1}`,
+          test_language: response.data.test_language || null,
+          test_total_score: response.data.test_total_score || 0,
+          activeAt:
+            response.data.activeAt || test.assigned_date || "",
+        };
+      } catch (err) {
+        console.error(
+          `❌ Error fetching test details for ${test.test_id}:`,
+          err.response?.data || err.message
+        );
+
+        return {
           test_id: test.test_id,
-          name: `Test ${modTests.indexOf(test) + 1}`,
+          assigned_date: test.assigned_date || "",
+          name: `Test ${index + 1}`,
           test_language: null,
-          test_total_score: null,
-          activeAt: test.assigned_date,
-          error: err.message,
-        }))
-    );
-
-    const testDetails = await Promise.all(testDetailsPromises);
-    console.log("Test details:", testDetails);
-
-    // Update mod_tests with test details
-    const updatedModTests = modTests.map((test) => {
-      const details = testDetails.find((td) => td.test_id === test.test_id) || {};
-      return {
-        test_id: test.test_id,
-        assigned_date: test.assigned_date,
-        name: details.name || test.name,
-        test_language: details.test_language,
-        test_total_score: details.test_total_score,
-        activeAt: details.activeAt,
-      };
+          test_total_score: 0,
+          activeAt: test.assigned_date || "",
+        };
+      }
     });
 
-    // Fetch user details and aggregate scores for each mod_users ID
-    const modUsers = pocResponse.data.mod_users || [];
+    const updatedModTests = await Promise.all(testDetailsPromises);
+
+    // ================= USERS =================
+    const modUsers = Array.isArray(pocResponse.data.mod_users)
+      ? pocResponse.data.mod_users
+      : [];
+
     let userScores = [];
 
+    // ================= FETCH USER SCORES =================
     if (modUsers.length > 0) {
-      const promises = modUsers.map((userId) =>
-        Promise.all([
-          axios
-            .get(`${ServiceAddress}/api/get_user_by_id_for_name/${userId}`)
-            .catch((err) => ({ error: err.message, userId })),
-          axios
-            .get(`${ServiceAddress}/api/aggregate_scores/${mod_poc_id}/${userId}`, {
-              headers: { Authorization: token },
-            })
-            .catch((err) => ({ error: err.message, userId })),
-        ])
-      );
+      const userPromises = modUsers.map(async (userId) => {
+        try {
+          const [userResp, scoreResp] = await Promise.all([
+            axios.get(
+              `${ServiceAddress}/api/get_user_by_id_for_name/${userId}`,
+              config
+            ),
 
-      const responses = await Promise.all(promises);
+            axios.get(
+              `${ServiceAddress}/api/aggregate_scores/${mod_poc_id}/${userId}`,
+              config
+            ),
+          ]);
 
-      userScores = responses.map(([userResp, scoreResp], index) => {
-        const userId = modUsers[index];
-        let result = { userId };
-
-        // Handle user details
-        if (userResp.error) {
-          result.error = userResp.error;
-        } else {
-          result.name = typeof userResp.data === 'string' ? userResp.data : userResp.data.name || 'Unknown';
-        }
-
-        // Handle scores and merge test details
-        if (scoreResp.error) {
-          result.error = result.error ? `${result.error}, Scores: ${scoreResp.error}` : scoreResp.error;
-        } else {
-          const tests = Array.isArray(scoreResp.data.response.tests)
+          const tests = Array.isArray(scoreResp.data?.response?.tests)
             ? scoreResp.data.response.tests.map((test) => {
-                const testDetail = testDetails.find((td) => td.test_id === test.test_id) || {};
+                const detail =
+                  updatedModTests.find(
+                    (t) => t.test_id === test.test_id
+                  ) || {};
+
                 return {
                   test_id: test.test_id,
-                  test_total_score: testDetail.test_total_score || test.test_total_score || 0,
+                  name: detail.name || "Unknown Test",
+                  assigned_date: detail.activeAt || "",
+                  test_language: detail.test_language || null,
+                  test_total_score:
+                    detail.test_total_score ||
+                    test.test_total_score ||
+                    0,
                   result_score: test.result_score || 0,
                   percentage: test.percentage || 0,
-                  name: testDetail.name || `Test ${index + 1}`,
-                  assigned_date: testDetail.activeAt || '',
-                  test_language: testDetail.test_language || null,
                 };
               })
             : [];
-          result.scores = {
-            ...scoreResp.data.response,
-            tests,
-            aggregate_score: scoreResp.data.response.aggregate_score || 100,
+
+          return {
+            userId,
+            name:
+              typeof userResp.data === "string"
+                ? userResp.data
+                : userResp.data?.name || "Unknown",
+
+            scores: {
+              ...scoreResp.data.response,
+              tests,
+              aggregate_score:
+                scoreResp.data.response?.aggregate_score || 0,
+            },
+          };
+        } catch (err) {
+          console.error(
+            `❌ Error fetching user ${userId}:`,
+            err.response?.data || err.message
+          );
+
+          return {
+            userId,
+            error:
+              err.response?.data?.message ||
+              err.response?.data ||
+              err.message,
           };
         }
-
-        return result;
       });
 
-      console.log(`Combined user scores: ${JSON.stringify(userScores)}`);
+      userScores = await Promise.all(userPromises);
     }
 
-    // Compute test_wise_total_result
+    // ================= TEST WISE RESULT =================
     const testWiseTotalResult = updatedModTests.map((test) => {
       const testScores = userScores
-        .filter((user) => !user.error) // Exclude users with errors
+        .filter((user) => !user.error)
         .flatMap((user) =>
-          (user.scores?.tests || []).filter((t) => t.test_id === test.test_id)
+          (user.scores?.tests || []).filter(
+            (t) => t.test_id === test.test_id
+          )
         );
 
       const num_students_attended = testScores.length;
-      const total_result_score = testScores.reduce((sum, t) => sum + (t.result_score || 0), 0);
-      const total_percentage = testScores.reduce((sum, t) => sum + (t.percentage || 0), 0);
+
+      const total_result_score = testScores.reduce(
+        (sum, t) => sum + (t.result_score || 0),
+        0
+      );
+
+      const total_percentage = testScores.reduce(
+        (sum, t) => sum + (t.percentage || 0),
+        0
+      );
 
       return {
         test_id: test.test_id,
         test_name: test.name,
         test_activeAt: test.activeAt,
         test_total_score: test.test_total_score || 0,
-        average_mark: num_students_attended > 0 ? total_result_score / num_students_attended : 0,
+
+        average_mark:
+          num_students_attended > 0
+            ? total_result_score / num_students_attended
+            : 0,
+
         num_students_attended,
-        average_percentage: num_students_attended > 0 ? total_percentage / num_students_attended : 0,
+
+        average_percentage:
+          num_students_attended > 0
+            ? total_percentage / num_students_attended
+            : 0,
       };
     });
 
-    // Decompose responses
-    const organizationDetails = {
-      org_name: orgResponse.data.org_name || null,
-      org_id: orgResponse.data.org_id || null,
-    };
-
-    const moduleDetails = {
-      mod_name: modResponse.data.mod_name || null,
-      mod_id: modResponse.data.mod_id || null,
-      mod_duration: modResponse.data.mod_duration || null,
-    };
-
-    const pocDetails = {
-      poc_name: pocResponse.data.mod_poc_name || null,
-      poc_id: pocResponse.data.mod_poc_id || null,
-      mod_users: modUsers,
-      mod_tests: updatedModTests,
-    };
-
-    // Combine responses
+    // ================= FINAL RESPONSE =================
     const result = {
-      organization: organizationDetails,
-      module: moduleDetails,
-      poc: pocDetails,
+      success: true,
+
+      organization: {
+        org_name: orgResponse.data?.org_name || null,
+        org_id: orgResponse.data?.org_id || null,
+      },
+
+      module: {
+        mod_name: modResponse.data?.mod_name || null,
+        mod_id: modResponse.data?.mod_id || null,
+        mod_duration: modResponse.data?.mod_duration || null,
+      },
+
+      poc: {
+        poc_name: pocResponse.data?.mod_poc_name || null,
+        poc_id: pocResponse.data?.mod_poc_id || null,
+        mod_users: modUsers,
+        mod_tests: updatedModTests,
+      },
+
       user_scores: userScores,
+
       test_details: {
         mod_tests: updatedModTests,
       },
+
       test_wise_total_result: testWiseTotalResult,
     };
 
-    res.status(200).json(result);
+    return res.status(200).json(result);
   } catch (error) {
-    console.error(`Error in fetch_details: ${error.message}`);
-    res.status(500).json({ message: 'Error fetching details', error: error.message });
+    console.error(
+      "❌ Error in fetch_details:",
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.response?.data || error.message,
+    });
   }
 });
 

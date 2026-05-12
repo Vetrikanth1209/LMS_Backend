@@ -58,6 +58,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dns = require("dns");
+const cors = require("cors");
+require("dotenv").config();
+
+// Routes
 const routes = require("./Modules/mod_controller");
 const orgRoutes = require("./Organisation/org_controller");
 const userRoutes = require("./User/user_controller");
@@ -70,26 +74,36 @@ const codingRoutes = require("./Test/coding_controller");
 const testRoutes = require("./Test/test_controller");
 const reportRoutes = require("./Report/result_controller");
 const individualRoutes = require("./Report/individual_controller");
-const cors = require("cors");
 
-require("dotenv").config();
+// JWT middleware
+const jwt = require("./auth");
 
-// ✅ Force Node.js to use Google DNS directly (fixes ECONNREFUSED on SRV lookup)
+// Force DNS
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
-// Initialize Express app
 const app = express();
 
-// Middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// ================= MIDDLEWARE =================
 app.use(cors());
 
-// Mount the routes
+app.use(express.json({
+  limit: "10mb"
+}));
+
+app.use(express.urlencoded({
+  extended: true,
+  limit: "10mb"
+}));
+
+// ================= PUBLIC ROUTES =================
+app.use("/api", loginRoutes);
+
+// ================= JWT PROTECTED ROUTES =================
+app.use("/api", jwt);
+
 app.use("/api", routes);
 app.use("/api", orgRoutes);
 app.use("/api", userRoutes);
-app.use("/api", loginRoutes);
 app.use("/api", pocRoutes);
 app.use("/api", expertRoutes);
 app.use("/api", testcaseRoutes);
@@ -99,26 +113,34 @@ app.use("/api", testRoutes);
 app.use("/api", reportRoutes);
 app.use("/api", individualRoutes);
 
-// MongoDB connection
+// ================= HEALTH CHECK =================
+app.get("/", (req, res) => {
+  res.send("API Running...");
+});
+
+// ================= MONGODB =================
 const mongoURI = process.env.MONGO_URI;
 
-console.log("MONGO_URI:", mongoURI);
+if (!mongoURI) {
+  console.error("❌ MONGO_URI missing in .env");
+  process.exit(1);
+}
 
-const connectWithRetry = () => {
-  mongoose
-    .connect(mongoURI)
-    .then(() => console.log("✅ Connected to MongoDB"))
-    .catch((error) => {
-      console.error("❌ MongoDB connection error:", error.message);
-      console.log("🔄 Retrying in 5 seconds...");
-      setTimeout(connectWithRetry, 5000); // retry every 5 seconds
-    });
-};
+console.log("Connecting MongoDB...");
 
-connectWithRetry();
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log("✅ MongoDB Connected");
 
-// Start the server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+})
+.catch((err) => {
+  console.error("❌ MongoDB Error:", err.message);
 });
