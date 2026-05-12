@@ -95,11 +95,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: function (origin, callback) {
 
-    // allow requests with no origin
-    // like mobile apps or postman
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) === -1) {
+    if (!origin) {
       return callback(null, true);
     }
 
@@ -116,8 +112,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Handle preflight requests
-app.options("*", cors());
+
 
 // ======================================================
 // BODY PARSER
