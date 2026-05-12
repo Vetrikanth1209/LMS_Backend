@@ -61,7 +61,7 @@ const dns = require("dns");
 const cors = require("cors");
 require("dotenv").config();
 
-// Routes
+// ================= ROUTES =================
 const routes = require("./Modules/mod_controller");
 const orgRoutes = require("./Organisation/org_controller");
 const userRoutes = require("./User/user_controller");
@@ -75,17 +75,53 @@ const testRoutes = require("./Test/test_controller");
 const reportRoutes = require("./Report/result_controller");
 const individualRoutes = require("./Report/individual_controller");
 
-// JWT middleware
+// ================= JWT =================
 const jwt = require("./auth");
 
-// Force DNS
+// ================= DNS =================
 dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
 
 const app = express();
 
-// ================= MIDDLEWARE =================
-app.use(cors());
+// ======================================================
+// CORS FIX
+// ======================================================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://your-frontend-domain.vercel.app"
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+
+    // allow requests with no origin
+    // like mobile apps or postman
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(null, true);
+    }
+
+    return callback(null, true);
+  },
+
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization"
+  ],
+
+  credentials: true
+}));
+
+// Handle preflight requests
+app.options("*", cors());
+
+// ======================================================
+// BODY PARSER
+// ======================================================
 app.use(express.json({
   limit: "10mb"
 }));
@@ -95,10 +131,21 @@ app.use(express.urlencoded({
   limit: "10mb"
 }));
 
-// ================= PUBLIC ROUTES =================
+// ======================================================
+// HEALTH CHECK
+// ======================================================
+app.get("/", (req, res) => {
+  res.status(200).send("API Running...");
+});
+
+// ======================================================
+// PUBLIC ROUTES
+// ======================================================
 app.use("/api", loginRoutes);
 
-// ================= JWT PROTECTED ROUTES =================
+// ======================================================
+// JWT PROTECTED ROUTES
+// ======================================================
 app.use("/api", jwt);
 
 app.use("/api", routes);
@@ -113,12 +160,22 @@ app.use("/api", testRoutes);
 app.use("/api", reportRoutes);
 app.use("/api", individualRoutes);
 
-// ================= HEALTH CHECK =================
-app.get("/", (req, res) => {
-  res.send("API Running...");
+// ======================================================
+// ERROR HANDLER
+// ======================================================
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: err.message
+  });
 });
 
-// ================= MONGODB =================
+// ======================================================
+// MONGODB CONNECTION
+// ======================================================
 const mongoURI = process.env.MONGO_URI;
 
 if (!mongoURI) {
@@ -126,13 +183,11 @@ if (!mongoURI) {
   process.exit(1);
 }
 
-console.log("Connecting MongoDB...");
+console.log("⏳ Connecting to MongoDB...");
 
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(mongoURI)
 .then(() => {
+
   console.log("✅ MongoDB Connected");
 
   const PORT = process.env.PORT || 5000;
@@ -140,7 +195,11 @@ mongoose.connect(mongoURI, {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
+
 })
 .catch((err) => {
-  console.error("❌ MongoDB Error:", err.message);
+
+  console.error("❌ MongoDB Connection Error");
+  console.error(err);
+
 });

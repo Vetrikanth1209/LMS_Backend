@@ -137,19 +137,7 @@ DELETE http://localhost:5000/api/delete_test/d8f2197b-9fbc-4786-8019-8b9a4005b5c
 GET http://localhost:5000/api/test_details/9b31e4f7-9848-4ccf-8ab4-bed0d8dd493e
 
 ##################
-POST http://localhost:5000/api/compiler
-Content-Type: application/json
-
-{
-  "language": "python",
-  "code": "a,b=map(int,input().split())\nprint(a+b)",
-  "testCases": [
-    {
-      "input": "2 3",
-      "expectedOutput": "5"
-    }
-  ]
-}
+GET http://localhost:3000/api/v2/runtimes
 #############
 GET http://localhost:2000/api/v2/runtimes
 
